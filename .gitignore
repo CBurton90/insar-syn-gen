@@ -1,0 +1,4 @@
+test_outputs/**
+!test_outputs/**/
+!test_outputs/**/.gitkeep
+turbulent_atm/**/*.cpython-310.pyc
