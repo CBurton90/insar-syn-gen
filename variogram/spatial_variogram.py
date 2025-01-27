@@ -18,10 +18,18 @@ def construct_variogram(filepath):
     rows, cols = vel.shape[0], vel.shape[1]
     print(f'array rows and cols are {rows},{cols}')
 
+    # TO DO - apply reliable pixel mask to velocities
+    # testing filtered displacements, subtract two timesteps to mimic an interferogram
+    disp_raw = f['Cumulative_Displacement_TSmooth']
+    print(disp_raw.shape)
+    vel = np.diff(disp_raw[100:102, :, :], axis=0)
+    vel = vel[0, :, :]
+    print(vel.shape)
+
     center_row = rows // 2
     center_col = cols // 2
-    start_idx = -500
-    end_idx = 0
+    start_idx = 200
+    end_idx = 700
     count_idx = 500
 
     #if rows > cols:
@@ -83,7 +91,7 @@ def construct_variogram(filepath):
     # assert value in original array equal masked array
     #assert vel[masked_rows[0], masked_cols[0]] == masked_vals[0]
     print('calculating variogram')
-    V = skg.Variogram(masked_coords, masked_vals, n_lags=30, bin_func='uniform')
+    V = skg.Variogram(masked_coords, masked_vals, n_lags=20, bin_func='even')
     #V.fit_method ='lm'
     #fig = V.plot(show=False)
     #fig.savefig('test_variogram_'+file+'.png')
