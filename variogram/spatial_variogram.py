@@ -4,10 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import skgstat as skg
+import verde as vd
 from scipy.optimize import curve_fit
 import csv
 
-file = '044D_12520_NZ_GNS_hres.h5'
+file = '146D_12547_NZ_GNS_hres.h5'
 plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/'
 subsample = False
 samp_frac = 0.15
@@ -17,8 +18,8 @@ relpix = True
 #col_start = 3000
 #col_end = 3200
 
-row_pixels = 200
-col_pixels = 200
+row_pixels = 250
+col_pixels = 250
 
 def construct_variogram(filepath, row_pixels, col_pixels, reliable_pixel_screen=True, subsample=False, samp_frac=None):
     f = h5.File(filepath, 'r')
@@ -115,10 +116,20 @@ def construct_variogram(filepath, row_pixels, col_pixels, reliable_pixel_screen=
                print(pix_mask.shape)
                coords = coords[pix_mask]
                print(f'Coords shape after reliable pixels mask {coords.shape}')
+               print(coords.dtype)
+
                if coords.shape[0] < 800:
                   print('Reliable pixel density insufficient, skipping tile')
                   continue
-               elif 5000 <= coords.shape[0] < 10000:
+
+               full_vel = np.fromiter((vel[c[0], c[1]] for c in coords), dtype=float)
+               print(f'Full res velocity is shape {full_vel.shape}')
+               print(type(full_vel))
+               coords_tuple = (np.float64(coords[:, 1]), np.float64(coords[:, 0]))
+               trend = vd.Trend(degree=1).fit(coords_tuple, full_vel)
+               trend_values = trend.predict(coords_tuple)
+
+               if 5000 <= coords.shape[0] < 10000:
                   subsample_count = (round(samp_frac*((col_pixels * row_pixels))),)
                   print(f'subsampling with {subsample_count} data points')
                   rand_samp = np.random.randint(coords.shape[0], size=round(0.3*coords.shape[0]))
@@ -180,7 +191,7 @@ def construct_variogram(filepath, row_pixels, col_pixels, reliable_pixel_screen=
                max_vel = np.max(masked_vals)
                print(max_vel)
 
-               fig, ax = plt.subplots(2, 2, figsize=(15,10))
+               fig, ax = plt.subplots(2, 3, figsize=(15,10))
                print('plotting full frame')
                ff = ax[0,0].scatter(long[::50, ::50], lat[::50, ::50], c=vel[::50, ::50], cmap='bwr_r', s=3, vmin=-10, vmax=10)
                ax[0,0].scatter(longs_grouped, lats_grouped, c='k', s=3)
@@ -188,11 +199,14 @@ def construct_variogram(filepath, row_pixels, col_pixels, reliable_pixel_screen=
                print('plotting frame subset')
                fs = ax[0,1].scatter(longs_grouped, lats_grouped, c=masked_vals, cmap='bwr_r', s=3, vmin=-10, vmax=10)
                #ax[1,0].plot(V.bins, V.experimental, '.b')
+               tr = ax[0,2].scatter(coords_tuple[0], coords_tuple[1], c=trend_values, s=3, cmap='plasma')
                V.plot(axes=ax[1,0], show=False)
 
                V.distance_difference_plot(ax=ax[1,1], show=False)
-               cb = fig.colorbar(ff, ax=ax[0, :])
+               cb = fig.colorbar(ff, ax=ax[0, :2])
+               cb2 = fig.colorbar(tr, ax=ax[0, 2])
                cb.set_label(label='Velocity (mm/yr)')
+               cb2.set_label(label='Velocity (mm/yr)')
                fig.savefig(plot_save_path+'inspect_variogram_'+file+'_rows_'+str(row_start)+'-'+str(row_end)+'_cols_'+str(col_start)+'-'+str(col_end)+'.png')
 
                params = V.parameters
@@ -201,7 +215,7 @@ def construct_variogram(filepath, row_pixels, col_pixels, reliable_pixel_screen=
                print(rmse)
 
                # Initialize data to lists.
-               param_list = [{'frame_coords': 'rows_'+str(row_start)+'_'+str(row_end),'rmse': rmse,'range': params[0], 'sill': params[1], 'nugget': params[2]}]
+               param_list = [{'frame_coords': 'rows_'+str(row_start)+'_'+str(row_end)+'_cols_'+str(col_start)+'_'+str(col_end),'rmse': rmse,'range': params[0], 'sill': params[1], 'nugget': params[2]}]
                param_df = pd.DataFrame(param_list)
                param_df.to_csv('variogram_params_'+file+'_'+'.csv', mode='a', index=False, header=False)
 
