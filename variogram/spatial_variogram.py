@@ -11,7 +11,7 @@ import verde as vd
 
 import llh2local
 
-file = '146D_12547_NZ_GNS_hres.h5'
+file = '044D_12520_NZ_GNS_hres.h5'
 plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/'
 subsample = False
 samp_frac = 0.15
@@ -196,7 +196,10 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
 
             coords_tuple = (np.float64(lng_subset), np.float64(lat_subset))
             trend = vd.Trend(degree=1).fit(coords_tuple, vel_subset)
+            print(f'Trend coef Verde are: {trend.coef_}')
             trend_values = trend.predict(coords_tuple)
+
+            
 
             if reliable_pixel_screen:
                #rel_pix = f['Reliable_Pixels']
@@ -231,6 +234,9 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
             x, y = proj.transform(crs_wgs, cust, lng_subsample, lat_subsample)
             print(x)
             print(y)
+
+            R, residuals, RANK, sing = np.linalg.lstsq(np.column_stack((x,y)), vel_subsample, rcond=None)
+            print(f'Trend coef Numpy linalg is: {R}')
 
             #sll = np.vstack((lng_subsample, lat_subsample))
             #ref_point = np.array([lng_start, lat_start])
