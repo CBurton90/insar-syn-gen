@@ -7,11 +7,12 @@ import pandas as pd
 import pyproj as proj
 from scipy.optimize import curve_fit
 import skgstat as skg
+from skgstat import models
 import verde as vd
 
 import llh2local
 
-file = '044D_12520_NZ_GNS_hres.h5'
+file = '096A_13547_NZ_GNS_rural.h5'
 plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/'
 subsample = False
 samp_frac = 0.15
@@ -25,8 +26,8 @@ relpix = True
 #col_pixels = 250
 
 # assume 0.01 deg is equal to ~1km
-lat_res = 0.06 #6km
-lng_res = 0.06 #6km
+lat_res = 0.045 #4.5km
+lng_res = 0.045 #4.5km
 
 def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, subsample=False, samp_frac=None):
 
@@ -194,10 +195,28 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
             #coords = np.column_stack((yy.flatten(), xx.flatten()))
                 #print(f'Coords shape pre masking {coords.shape}')
 
+            if lat_subset.shape[0] < 2500:
+                print('Reliable pixel density insufficient, skipping tile')
+                continue
+
+            crs_wgs = proj.Proj(init='epsg:4326')
+            cust = proj.Proj("+proj=aeqd +lat_0={0} +lon_0={1} +datum=WGS84 +units=m".format(lat_start, lng_start))
+            x, y = proj.transform(crs_wgs, cust, lng_subset, lat_subset)
+            print(x)
+            print(y)
+
             coords_tuple = (np.float64(lng_subset), np.float64(lat_subset))
             trend = vd.Trend(degree=1).fit(coords_tuple, vel_subset)
             print(f'Trend coef Verde are: {trend.coef_}')
             trend_values = trend.predict(coords_tuple)
+            vel_residuals = vel_subset - trend_values 
+
+            xy_cint_stack = np.column_stack((x,y,np.ones_like(y)))
+            print(xy_cint_stack)
+            print(xy_cint_stack.shape)
+            R, residuals, RANK, sing = np.linalg.lstsq(xy_cint_stack, np.float32(vel_subset), rcond=None)
+            print(f'Trend coef Numpy linalg is: {R}')
+            print(f'Trend residual Numpy linalg is: {residuals}')
 
             
 
@@ -210,34 +229,34 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
                #print(f'Coords shape after reliable pixels mask {coords.shape}')
                #print(coords.dtype)
 
-               if lat_subset.shape[0] < 500:
-                   print('Reliable pixel density insufficient, skipping tile')
-                   continue
-
+               
                #full_vel = np.fromiter((vel[c[0], c[1]] for c in coords), dtype=float)
                #print(f'Full res velocity is shape {full_vel.shape}')
                #print(type(full_vel))
 
-               if 5000 <= lat_subset.shape[0] < 10000:
-                   rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.3*lat_subset.shape[0]))
-               elif 10000 <= lat_subset.shape[0] < 20000:
-                   rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.15*lat_subset.shape[0]))
+               if lat_subset.shape[0] >= 5000:
+                   if 5000 <= lat_subset.shape[0] < 10000:
+                       rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.5*lat_subset.shape[0]))
+                   elif 10000 <= lat_subset.shape[0] < 20000:
+                       rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.25*lat_subset.shape[0]))
+                   else:
+                       rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.15*lat_subset.shape[0]))
+
+                   lat_subsample = lat_subset[rand_samp]
+                   lng_subsample = lng_subset[rand_samp]
+                   vel_subsample = vel_subset[rand_samp]
+                   vel_resid_subsample = vel_residuals[rand_samp]
+                   x_subsample = x[rand_samp]
+                   y_subsample = y[rand_samp]
+
                else:
-                   rand_samp = np.random.randint(lat_subset.shape[0], size=round(0.1*lat_subset.shape[0]))
-            
-            lat_subsample = lat_subset[rand_samp]
-            lng_subsample = lng_subset[rand_samp]
-            vel_subsample = vel_subset[rand_samp]
-
-            crs_wgs = proj.Proj(init='epsg:4326')
-            cust = proj.Proj("+proj=aeqd +lat_0={0} +lon_0={1} +datum=WGS84 +units=m".format(lat_start, lng_start))
-            x, y = proj.transform(crs_wgs, cust, lng_subsample, lat_subsample)
-            print(x)
-            print(y)
-
-            R, residuals, RANK, sing = np.linalg.lstsq(np.column_stack((x,y)), vel_subsample, rcond=None)
-            print(f'Trend coef Numpy linalg is: {R}')
-
+                   lat_subsample = lat_subset
+                   lng_subsample = lng_subset
+                   vel_subsample = vel_subset
+                   vel_resid_subsample = vel_residuals
+                   x_subsample = x
+                   y_subsample = y        
+           
             #sll = np.vstack((lng_subsample, lat_subsample))
             #ref_point = np.array([lng_start, lat_start])
             #xy = llh2local.llh2local(sll, ref_point)
@@ -281,9 +300,28 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
     #assert vel[masked_rows[0], masked_cols[0]] == masked_vals[0]
             print('calculating variogram')
             try:
-                coords = np.column_stack((x,y))
-                V = skg.Variogram(coords, vel_subsample, n_lags=20, bin_func='even')
+                coords = np.column_stack((x_subsample,y_subsample))
+                V = skg.Variogram(coords, vel_resid_subsample, n_lags=30, bin_func='even', use_nugget=True)
                 V.model = 'exponential'
+
+                params = V.parameters
+                print(params)
+                test = V.describe()
+                print(test)
+                rmse = V.rmse
+                print(rmse)
+                sill = test['sill']+test['nugget']
+                
+                def exp_func(d, a, b):
+                    return a*np.exp(-b*d)
+
+                cov_func = (test['sill']+test['nugget']) - V.experimental
+                print(cov_func)
+                #p0 = [np.mean(V.bins), np.mean(cov_func), 0]
+                p0 = (sill, 1e-6)
+                cof, cov = curve_fit(exp_func, V.bins, cov_func, p0=p0)
+                xi = np.linspace(V.bins[0], V.bins[-1], 100)
+                yi = [models.exponential(h, *cof) for h in xi]
                 #V.fit_method ='lm
                 #fig = V.plot(show=False)
                 #fig.savefig('test_variogram_'+file+'.png'
@@ -299,22 +337,30 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
                 ax[0,0].scatter(lng_subsample, lat_subsample, c='k', s=3)
                 #ax[0,0] = plt.scatter(long_masked[::100, ::100], lat_masked[::100, ::100], c=vel_masked[::100, ::100], cmap='bwr_r')
                 print('plotting frame subset')
-                fs = ax[0,1].scatter(x, y, c=vel_subsample, cmap='bwr_r', s=3, vmin=-10, vmax=10)
+                fs = ax[0,1].scatter(x_subsample, y_subsample, c=vel_resid_subsample, cmap='bwr_r', s=3, vmin=-10, vmax=10)
                 #ax[1,0].plot(V.bins, V.experimental, '.b')
                 tr = ax[0,2].scatter(coords_tuple[0], coords_tuple[1], c=trend_values, s=3, cmap='plasma')
+                tr2 = ax[1,2].scatter(x, y, c=(x*R[0]+y*R[1]+R[2]), s=3, cmap='plasma')
                 V.plot(axes=ax[1,0], show=False)
-                V.distance_difference_plot(ax=ax[1,1], show=False)
-                cb = fig.colorbar(ff, ax=ax[0, :2])
-                cb2 = fig.colorbar(tr, ax=ax[0, 2])
+                #V.distance_difference_plot(ax=ax[1,1], show=False)
+
+                ax[0,0].set_title('Full Frame (50 pixel sub-sampling)')
+                ax[0,1].set_title('Sampled Region (local coordinates)')
+                ax[1,0].set_title('Experimental Variogram')
+                ax[1,1].set_title('Covariance')
+
+                
+                ax[1,1].plot(V.bins, cov_func, '.b')
+                ax[1,1].plot(xi, yi, 'og')
+                cb = fig.colorbar(ff, ax=ax[0,:2])
+                cb2 = fig.colorbar(tr, ax=ax[0,2])
+                cb3 = fig.colorbar(tr2, ax=ax[1,2])
                 cb.set_label(label='Velocity (mm/yr)')
-                cb2.set_label(label='Velocity (mm/yr)')
+                cb2.set_label(label='Verde - Velocity trend (mm/yr)')
+                cb3.set_label(label='Numpy - Velocity trend (mm/yr)')
                 fig.savefig(plot_save_path+'inspect_variogram_'+file+'_rows_'+str(lat_start)+'-'+str(lat_end)+'_cols_'+str(lng_start)+'-'+str(lng_end)+'.png')
 
-                params = V.parameters
-                print(params)
-                rmse = V.rmse
-                print(rmse)
-
+               
                # Initialize data to lists.
                 param_list = [{'frame_coords': 'rows_'+str(lat_start)+'_'+str(lat_end)+'_cols_'+str(lng_start)+'_'+str(lng_end),'rmse': rmse,'range': params[0], 'sill': params[1], 'nugget': params[2]}]
                 param_df = pd.DataFrame(param_list)
