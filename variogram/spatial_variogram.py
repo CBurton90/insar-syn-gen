@@ -17,6 +17,7 @@ plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/'
 subsample = False
 samp_frac = 0.15
 relpix = True
+N_bins = 30
 #row_start = 6000
 #row_end = 6200
 #col_start = 3000
@@ -84,9 +85,12 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
     print(f'Lng strides are {lng_strides}')
 
     with open('variogram_params_'+file+'_'+'.csv', 'w') as csvfile:
-        fieldnames = ['frame_coords','rmse','range', 'sill', 'nugget']
+        fieldnames = ['frame_coords', 'rmse', 'range', 'effective_range', 'partial_sill', 'sill', 'nugget', 'a', 'b']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+
+    detrended_variogram_values = []
+    detrended_covariance_values = []
 
         
 
@@ -214,7 +218,10 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
             xy_cint_stack = np.column_stack((x,y,np.ones_like(y)))
             print(xy_cint_stack)
             print(xy_cint_stack.shape)
-            R, residuals, RANK, sing = np.linalg.lstsq(xy_cint_stack, np.float32(vel_subset), rcond=None)
+            R, residuals, rank, sing = np.linalg.lstsq(xy_cint_stack, np.float32(vel_subset), rcond=None)
+            np_trend = xy_cint_stack @ R
+            np_vel_residuals = vel_subset - np_trend
+
             print(f'Trend coef Numpy linalg is: {R}')
             print(f'Trend residual Numpy linalg is: {residuals}')
 
@@ -246,6 +253,7 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
                    lng_subsample = lng_subset[rand_samp]
                    vel_subsample = vel_subset[rand_samp]
                    vel_resid_subsample = vel_residuals[rand_samp]
+                   np_vel_resid_subsample = np_vel_residuals[rand_samp]
                    x_subsample = x[rand_samp]
                    y_subsample = y[rand_samp]
 
@@ -254,6 +262,7 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
                    lng_subsample = lng_subset
                    vel_subsample = vel_subset
                    vel_resid_subsample = vel_residuals
+                   np_vel_resid_subsample = np_vel_residuals
                    x_subsample = x
                    y_subsample = y        
            
@@ -301,27 +310,36 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
             print('calculating variogram')
             try:
                 coords = np.column_stack((x_subsample,y_subsample))
-                V = skg.Variogram(coords, vel_resid_subsample, n_lags=30, bin_func='even', use_nugget=True)
+                V = skg.Variogram(coords, np_vel_resid_subsample, n_lags=N_bins, bin_func='even', use_nugget=True)
                 V.model = 'exponential'
+                V2 = skg.Variogram(coords, vel_subsample, n_lags=N_bins, bin_func='even', use_nugget=True)
+                V2.model = 'exponential'
 
                 params = V.parameters
                 print(params)
                 test = V.describe()
+                test2 = V2.describe()
                 print(test)
                 rmse = V.rmse
                 print(rmse)
                 sill = test['sill']+test['nugget']
+                sill2 = test2['sill']+test2['nugget']
+                eff_r = test['effective_range']
+                phi = 3/eff_r
                 
                 def exp_func(d, a, b):
                     return a*np.exp(-b*d)
 
                 cov_func = (test['sill']+test['nugget']) - V.experimental
+                cov_func0 = np.array([i if i > 0 else 0 for i in cov_func])
                 print(cov_func)
+                cov_func2 = (test2['sill']+test2['nugget']) - V2.experimental
                 #p0 = [np.mean(V.bins), np.mean(cov_func), 0]
-                p0 = (sill, 1e-6)
-                cof, cov = curve_fit(exp_func, V.bins, cov_func, p0=p0)
+                p0 = (sill-test['nugget'], phi)
+                cof, cov = curve_fit(exp_func, V.bins, cov_func0, p0=p0)
                 xi = np.linspace(V.bins[0], V.bins[-1], 100)
                 yi = [models.exponential(h, *cof) for h in xi]
+                yi2 = (sill-test['nugget'])*np.exp(-phi*(xi))
                 #V.fit_method ='lm
                 #fig = V.plot(show=False)
                 #fig.savefig('test_variogram_'+file+'.png'
@@ -331,40 +349,59 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
                 #print(min_vel)
                 #max_vel = np.max(masked_vals)
                 #print(max_vel)
-                fig, ax = plt.subplots(2, 3, figsize=(15,10))
+                fig, ax = plt.subplots(3, 3, figsize=(20,15))
+
                 print('plotting full frame')
                 ff = ax[0,0].scatter(lng[::50, ::50], lat[::50, ::50], c=vel[::50, ::50], cmap='bwr_r', s=3, vmin=-10, vmax=10)
                 ax[0,0].scatter(lng_subsample, lat_subsample, c='k', s=3)
                 #ax[0,0] = plt.scatter(long_masked[::100, ::100], lat_masked[::100, ::100], c=vel_masked[::100, ::100], cmap='bwr_r')
-                print('plotting frame subset')
-                fs = ax[0,1].scatter(x_subsample, y_subsample, c=vel_resid_subsample, cmap='bwr_r', s=3, vmin=-10, vmax=10)
+                print('plotting detrended subset')
+                fs = ax[0,1].scatter(x_subsample, y_subsample, c=np_vel_resid_subsample, cmap='bwr_r', s=3, vmin=-10, vmax=10)
                 #ax[1,0].plot(V.bins, V.experimental, '.b')
-                tr = ax[0,2].scatter(coords_tuple[0], coords_tuple[1], c=trend_values, s=3, cmap='plasma')
-                tr2 = ax[1,2].scatter(x, y, c=(x*R[0]+y*R[1]+R[2]), s=3, cmap='plasma')
-                V.plot(axes=ax[1,0], show=False)
-                #V.distance_difference_plot(ax=ax[1,1], show=False)
+                #tr = ax[0,2].scatter(coords_tuple[0], coords_tuple[1], c=trend_values, s=3, cmap='plasma')
 
-                ax[0,0].set_title('Full Frame (50 pixel sub-sampling)')
-                ax[0,1].set_title('Sampled Region (local coordinates)')
+                tr2 = ax[0,2].scatter(x, y, c=np_trend, s=3, cmap='plasma')
+
+                V2.plot(axes=ax[1,0], show=False)
+                ax[1,1].plot(V2.bins, cov_func2, '.b')
+                V2.distance_difference_plot(ax=ax[1,2], show=False)
+
+                V.plot(axes=ax[2,0], show=False)
+                ax[2,1].plot(V.bins, cov_func0, '.b')
+                #ax[2,1].plot(xi, yi, 'og')
+                ax[2,1].plot(xi, yi2, 'r')
+                V.distance_difference_plot(ax=ax[2,2], show=False)
+
+                ax[0,0].set_title('Raw Full Frame (50 pixel sub-sampling)')
+                ax[0,1].set_title('Detrended Sampled Region (local coordinates)')
+                ax[0,2].set_title('Spatial Trend (deg 1 polynomial fit)')
                 ax[1,0].set_title('Experimental Variogram')
-                ax[1,1].set_title('Covariance')
+                ax[1,1].set_title('Covariance (unbounded)')
+                ax[2,0].set_title('Experimental Variogram (detrended)')
+                ax[2,1].set_title('Covariance (detrended & bounded to 0)')
 
                 
-                ax[1,1].plot(V.bins, cov_func, '.b')
-                ax[1,1].plot(xi, yi, 'og')
                 cb = fig.colorbar(ff, ax=ax[0,:2])
-                cb2 = fig.colorbar(tr, ax=ax[0,2])
-                cb3 = fig.colorbar(tr2, ax=ax[1,2])
+                #cb2 = fig.colorbar(tr, ax=ax[0,2])
+                cb3 = fig.colorbar(tr2, ax=ax[0,2])
                 cb.set_label(label='Velocity (mm/yr)')
-                cb2.set_label(label='Verde - Velocity trend (mm/yr)')
-                cb3.set_label(label='Numpy - Velocity trend (mm/yr)')
-                fig.savefig(plot_save_path+'inspect_variogram_'+file+'_rows_'+str(lat_start)+'-'+str(lat_end)+'_cols_'+str(lng_start)+'-'+str(lng_end)+'.png')
+                #cb2.set_label(label='Verde - Velocity trend (mm/yr)')
+                cb3.set_label(label='Velocity trend (mm/yr)')
+                fig.savefig(plot_save_path+'inspect_variogram_'+file+'_lat_'+str(lat_start)+'_'+str(lat_end)+'_long_'+str(lng_start)+'_'+str(lng_end)+'.png')
 
                
                # Initialize data to lists.
-                param_list = [{'frame_coords': 'rows_'+str(lat_start)+'_'+str(lat_end)+'_cols_'+str(lng_start)+'_'+str(lng_end),'rmse': rmse,'range': params[0], 'sill': params[1], 'nugget': params[2]}]
+                param_list = [{'frame_coords': 'lat_'+str(lat_start)+'_'+str(lat_end)+'_long_'+str(lng_start)+'_'+str(lng_end),'rmse': rmse,'range': params[0], 'effective_range': eff_r, 'partial_sill': test['sill'], 'sill': sill, 'nugget': test['nugget'], 'a': sill - test['nugget'], 'b': phi}]
                 param_df = pd.DataFrame(param_list)
                 param_df.to_csv('variogram_params_'+file+'_'+'.csv', mode='a', index=False, header=False)
+                
+                detrended_variogram_values.append(np.column_stack((V.bins,V.experimental)))
+                dvv = np.array(detrended_variogram_values)
+                np.save('detrended_variogram_values_'+file+'.npy', dvv)
+                detrended_covariance_values.append(np.column_stack((V.bins,cov_func0)))
+                dcv = np.array(detrended_covariance_values)
+                np.save('detrended_covariance_values_'+file+'.npy', dcv)
+                
 
             except RuntimeError:
                 print('Runtime Error for curvefit')
