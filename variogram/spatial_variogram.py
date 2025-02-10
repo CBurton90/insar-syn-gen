@@ -85,7 +85,7 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
     print(f'Lng strides are {lng_strides}')
 
     with open('variogram_params_'+file+'_'+'.csv', 'w') as csvfile:
-        fieldnames = ['frame_coords', 'rmse', 'range', 'effective_range', 'partial_sill', 'sill', 'nugget', 'a', 'b']
+        fieldnames = ['lat_start', 'lat_end', 'lng_start', 'lng_end', 'rmse', 'range', 'effective_range', 'partial_sill', 'sill', 'nugget', 'a', 'b']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -391,9 +391,9 @@ def construct_variogram(filepath, lat_res, lng_res, reliable_pixel_screen=True, 
 
                
                # Initialize data to lists.
-                param_list = [{'frame_coords': 'lat_'+str(lat_start)+'_'+str(lat_end)+'_long_'+str(lng_start)+'_'+str(lng_end),'rmse': rmse,'range': params[0], 'effective_range': eff_r, 'partial_sill': test['sill'], 'sill': sill, 'nugget': test['nugget'], 'a': sill - test['nugget'], 'b': phi}]
+                param_list = [{'lat_start': lat_start, 'lat_end': lat_end, 'lng_start': lng_start, 'lng_end': lng_end, 'rmse': rmse,'range': params[0], 'effective_range': eff_r, 'partial_sill': test['sill'], 'sill': sill, 'nugget': test['nugget'], 'a': sill - test['nugget'], 'b': phi}]
                 param_df = pd.DataFrame(param_list)
-                param_df.to_csv('variogram_params_'+file+'_'+'.csv', mode='a', index=False, header=False)
+                param_df.to_csv('variogram_params_'+file++'.csv', mode='a', index=False, header=False)
                 
                 detrended_variogram_values.append(np.column_stack((V.bins,V.experimental)))
                 dvv = np.array(detrended_variogram_values)
