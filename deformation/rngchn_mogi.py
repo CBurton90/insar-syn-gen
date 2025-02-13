@@ -31,7 +31,7 @@ def rngchn_mogi(n1, e1, depth, del_v, ning, eing, v, plook):
     
     #easting are single row and northings are single column
     if mm == 1 and n ==1:
-        print('Calculating a matrix of rngchg values')
+        print('Calculating a matrix of rngchg values for easting row vector and northing column vector')
 
         del_rng = np.zeros((m, nn)) #2d easting/northing matrix
         del_d = del_rng
@@ -55,14 +55,35 @@ def rngchn_mogi(n1, e1, depth, del_v, ning, eing, v, plook):
         for i in range(nn):
             del_rng[:, i] = np.array([e_disp[:, i], n_disp[:, i], del_f[:, i]]) * plook.T
 
+        return del_rng
+
     #easting are single row/column and northings are single row/column
     elif (mm ==1 and m == 1) | (n == 1 and nn == 1):
         if n != nn:
             print('Coord vectors not equal length')
             sys.exit()
-        print('Calculating a matrix of rngchg values')
+        print('Calculating a matrix of rngchg values for matching easting/northing row/column vectors')
+        del_rng = np.zeros(m)
+        del_d = del_rng
+        del_f = del_rng
+        d_mat = np.sqrt((ning - n1)**2 + (eing - e1)**2)
+        tmp_hyp = ((d_mat**2 + depth**2)**1.5)
+        del_d = dsp_coef * d_mat / tmp_hyp
+        del_f = dsp_coef * depth / tmp_hyp
+        azim = np.arctan2((eing - e1),(ning - n1))
+        e_disp = np.sin(azim) * del_d
+        n_disp = np.cos(azim) * del_d
+        del_rng = np.column_stack((e_disp, n_disp, del_f)) * plook
+        print(del_rng.shape)
+        del_rng = np.sum(del_rng.T, axis=0)
+        print(del_rng.shape)
+        del_rng = del_rng[:, None]
+        print(del_rng.shape)
+        del_rng = -1.0 * del_rng / 1000 # convert from mm to m
+        #del_rng = -1.0 * del_rng #mm
+
+        return del_rng
+
     else:
         print('Coord vectors make no sense')
         sys.exit()
-        
-    return del_rng
