@@ -27,14 +27,13 @@ def gen_def(source, x, y, mogi, heading, incidence):
     coords = np.array([xx.T, yy.T])
 
     if source == 4:
-        xgrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.matlib.repmat(np.array([1, 0, 0]), coords.shape[1], 1)) # volume converted to km^3, easting/northing converted from m to km
-        ygrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.matlib.repmat(np.array([0, 1, 0]), coords.shape[1], 1)) # volume converted to km^3, easting/northing converted from m to km
-        zgrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.matlib.repmat(np.array([0, 0, 1]), coords.shape[1], 1)) # volume converted to km^3, easting/northing converted from m to km
-        los_grid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.matlib.repmat(los_vec, coords.shape[1], 1))
+        xgrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.tile(np.array([1, 0, 0]), (coords.shape[1], 1))) # volume converted to km^3, easting/northing converted from m to km
+        ygrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.tile(np.array([0, 1, 0]), (coords.shape[1], 1))) # volume converted to km^3, easting/northing converted from m to km
+        zgrid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.tile(np.array([0, 0, 1]), (coords.shape[1], 1))) # volume converted to km^3, easting/northing converted from m to km
+        los_grid = rngchn_mogi.rngchn_mogi(1/1000, 1/1000, mogi['depth'], -mogi['volume']/1e9, coords[1,:].T/1000, coords[0,:].T/1000, v, np.tile(los_vec, (coords.shape[1], 1)))
         los_grid = np.reshape(los_grid, (len(y),len(x)))
-        print(los_grid)
 
-        los_grid_wrap = np.mod(los_grid+10000, 0.028333) # wrap S1 C-band if grid def in m
+        los_grid_wrap = (np.mod(los_grid+10000, 0.028333) / 0.028333) *2*np.pi # wrap S1 C-band if grid def in m
         #los_grid_wrap = np.mod(los_grid+100000, 0.028333*1000) # wrap S1 C-band if grid def in mm
 
     return los_grid_wrap, los_grid
@@ -78,32 +77,31 @@ def create_def_samples(source, x, y, mogi, volume_lst, heading_lst, incidence_ls
                         # scaling to radians
                         los_grid = los_grid/0.028333 * 2 * np.pi
 
-                        crop_idx = np.arange(-halfcrop, halfcrop+1)
+                        crop_idx = np.arange(-halfcrop, halfcrop)
                         los_grid = los_grid[np.ix_(crop_idx + math.ceil(los_grid.shape[0]/2), math.ceil(los_grid.shape[1]/2) + crop_idx)]
                         wrapped_grid = wrapped_grid[np.ix_(crop_idx + math.ceil(wrapped_grid.shape[0]/2), math.ceil(wrapped_grid.shape[1]/2) + crop_idx)]
 
-                        print(los_grid.shape)
-                        print(np.ptp(los_grid))
-                        print(np.max(los_grid))
-                    
-                        output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
-                        #output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
-                        fig = plt.figure(figsize=(10,10))
-                        plt.imshow(los_grid, cmap='jet', vmin=-10, vmax=10)
-                        plt.colorbar()
-                        #plt.imsave(output_path+file_name+'.png', los_grid, cmap='jet')
-                        plt.savefig(output_path+file_name+'.png')
+                        if 10 < np.ptp(los_grid) < 20:
 
-                        if wrapped:
-                            #wrapped_crop = np.angle(np.exp(1j * los_grid))
-                            #norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
-                            wrapped_pn_pi = np.remainder(los_grid, 2*np.pi) - np.pi # wrap between -pi to +pi
-                            output_path = output_dir + 'wrapped/set'+str(2-(count % 2))+'/'
-                            fig = plt.figure(figsize=(10,10))
-                            #plt.imshow(wrapped_grid, cmap='jet', vmin=0, vmax=0.02833) # if def in m
-                            plt.imshow(wrapped_pn_pi, cmap='jet', vmin=-np.pi, vmax=np.pi) # if gdef in mm
-                            plt.colorbar()
-                            plt.savefig(output_path+file_name+'.png')
+                            output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
+                            #output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
+                            np.save(output_path+file_name, los_grid)
+                            #fig = plt.figure(figsize=(10,10))
+                            #plt.imshow(los_grid, cmap='jet', vmin=-10, vmax=10)
+                            #plt.colorbar()
+                            #plt.imsave(output_path+file_name+'.png', los_grid, cmap='jet')
+                            #plt.savefig(output_path+file_name+'.png')
+
+                            if wrapped:
+                                #wrapped_crop = np.angle(np.exp(1j * los_grid))
+                                #norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
+                                wrapped_pn_pi = np.mod(los_grid, 2*np.pi) - np.pi # wrap between -pi to +pi
+                                output_path = output_dir + 'wrapped/set'+str(2-(count % 2))+'/'
+                                fig = plt.figure(figsize=(10,10))
+                                #plt.imshow(wrapped_grid, cmap='jet', vmin=0, vmax=0.02833) # if def in m
+                                plt.imshow(wrapped_pn_pi, cmap='jet', vmin=-np.pi, vmax=np.pi) # if gdef in mm
+                                plt.colorbar()
+                                plt.savefig(output_path+file_name+'.png')
 
                         count += 1
 
@@ -120,14 +118,12 @@ mogi = {
 volume_lst = [0.3, 0.5, 1, 1.5, 1.6, 1.8, 2, 2.5, 2.7, 3, 3.2, 3.5, 4]
 heading_lst = [5, 15, 20, 25, 30]
 incidence_lst = [29,30,31]
-halfcrop = 227 // 2
+halfcrop = 224 // 2
 output_dir = '../test_outputs/deformation/'
 
 if __name__ == '__main__':
     x = np.arange(-2500, 2500, 10)
     y = np.arange(-2500, 2500, 10)
-    print(x)
-    print(y)
     #_, los_grid = gen_def(4, x, y, mogi, 20, 34)
     create_def_samples(4, x, y, mogi, volume_lst, heading_lst, incidence_lst, halfcrop, output_dir, wrapped=True)
 
