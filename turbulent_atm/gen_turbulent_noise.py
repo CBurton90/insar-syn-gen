@@ -11,7 +11,7 @@ cols = 100
 psizex = 1
 psizey = 1
 covmodel = 0
-N = 10
+N = 200
 halfcrop = 224 // 2 # Alexnet input size 227x227
 img_size = 500 # resolution in pixels
 
