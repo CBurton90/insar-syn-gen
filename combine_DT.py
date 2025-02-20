@@ -56,9 +56,12 @@ def main(root_dir, class_samples):
             #mask = np.random.choice([True, False], insar_wrapped.shape, p=[0.6, 0.4])
             #insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=mask)
 
+            insar_unwrapped = np.ma.MaskedArray(insar_img, mask=test.astype(bool))
             insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=test.astype(bool))
+
             
             plt.imsave(output_dir_wrap+'wrapped_DT_'+def_str+'_'+tur_str+'.png', insar_wrapped, cmap='jet')
+            plt.imsave(output_dir_unwrap+'unwrapped_DT_'+def_str+'_'+tur_str+'.png', insar_unwrapped, cmap='jet')
 
 
 

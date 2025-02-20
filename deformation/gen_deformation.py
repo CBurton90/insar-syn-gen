@@ -57,7 +57,7 @@ def create_def_samples(source, x, y, mogi, volume_lst, heading_lst, incidence_ls
                     depth_range = [10/1000, 20/1000, 30/1000, 40/1000]
 
                 elif vol <=4:
-                    depth_range = [45/1000, 65/1000, 80/1000, 90/1000]
+                    depth_range = [45/1000, 65/1000, 80/1000, 90/1000, 100/1000, 200/1000, 300/1000, 400/1000]
 
                 else:
                     print('Volume outside of range')
@@ -81,7 +81,7 @@ def create_def_samples(source, x, y, mogi, volume_lst, heading_lst, incidence_ls
                         los_grid = los_grid[np.ix_(crop_idx + math.ceil(los_grid.shape[0]/2), math.ceil(los_grid.shape[1]/2) + crop_idx)]
                         wrapped_grid = wrapped_grid[np.ix_(crop_idx + math.ceil(wrapped_grid.shape[0]/2), math.ceil(wrapped_grid.shape[1]/2) + crop_idx)]
 
-                        if 10 < np.ptp(los_grid) < 20:
+                        if 10 < np.ptp(los_grid) < 60:
 
                             output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
                             #output_path = output_dir + 'unwrapped/set'+str(2-(count % 2))+'/'
