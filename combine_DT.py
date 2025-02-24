@@ -57,7 +57,9 @@ def main(root_dir, class_samples):
             #insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=mask)
 
             insar_unwrapped = np.ma.MaskedArray(insar_img, mask=test.astype(bool))
+            insar_unwrapped_filled = np.ma.filled(insar_unwrapped, 0)
             insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=test.astype(bool))
+            np.save(output_dir_unwrap+'unwrapped_DT_'+def_str+'_'+tur_str, insar_unwrapped_filled)
 
             
             plt.imsave(output_dir_wrap+'wrapped_DT_'+def_str+'_'+tur_str+'.png', insar_wrapped, cmap='jet')
