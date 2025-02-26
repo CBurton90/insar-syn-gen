@@ -1,0 +1,13 @@
+[data]
+frame = '/home/conradb/Downloads/096A_13547_NZ_GNS_rural.h5' # insar frame, hres = 20m pixels, rural = 50m pixels
+image_dims = 224 # image dimensions
+
+[filters]
+rel_pix = true # use reliable pixel mask?
+nan_thresh = 0.65 # max percentage of frame subset that contains nans
+
+[variogram]
+bins = 30
+lat_res = 0.045 # latitude range to compute variogram over in degrees, we assume 0.01 deg ~ 1km
+lng_res = 0.045 # as above but for longitude
+plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/' # save output plots of variogram and covariance function

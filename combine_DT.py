@@ -15,12 +15,17 @@ def main(root_dir, class_samples):
         deform_list = glob(root_dir+'deformation/'+unwrapped_dir+'*.npy')
         print(deform_list)
         turbulent_list = glob(root_dir+'turbulent_atm_noise/'+unwrapped_dir+'*.npy')
-
+        
+        noise_list = glob(root_dir+'spike_noise/*.npy')
+        decoh_list = glob(root_dir+'decoh_mask/*.npy')
 
         idx_def = np.random.choice(len(deform_list), class_samples, replace = False)
         print(idx_def)
         idx_trb= np.random.choice(len(turbulent_list), class_samples, replace = False)
         print(idx_trb)
+
+        idx_noise = np.random.choice(len(noise_list), class_samples, replace = True)
+        idx_decoh = np.random.choice(len(decoh_list), class_samples, replace = True)
 
         output_dir_unwrap = root_dir+'combined/'+unwrapped_dir
         output_dir_wrap = root_dir+'combined/'+wrapped_dir
@@ -35,35 +40,46 @@ def main(root_dir, class_samples):
             tur_del = np.load(turbulent_list[idx_trb[k]])
             insar_img = los_grid + tur_del
 
-            noise = np.random.default_rng().uniform(0.2*np.min(insar_img), 0.3*np.max(insar_img), int(0.03*insar_img.size))
-            zeros = np.zeros(insar_img.size - len(noise))
-            noise = np.concatenate([noise, zeros])
-            np.random.shuffle(noise)
-            insar_img = insar_img + noise.reshape((224,224))
+            #noise = np.random.default_rng().uniform(0.2*np.min(insar_img), 0.3*np.max(insar_img), int(0.03*insar_img.size))
+            #zeros = np.zeros(insar_img.size - len(noise))
+            #noise = np.concatenate([noise, zeros])
+            #np.random.shuffle(noise)
+
+            angle = np.random.randint(0, 360)
+
+            noise = np.load(noise_list[idx_noise[k]])
+            noise = (noise / 1000) / 0.028333 * 2 * np.pi # scale noise from mm/yr to radians
+            noise = rotate(noise, angle, reshape=False, cval=0)
+
+            #insar_img = insar_img + noise.reshape((224,224))
+            insar_img = insar_img + noise
 
             insar_wrapped = np.mod(insar_img, 2*np.pi) - np.pi
             def_str = deform_list[idx_def[k]].split('/')[-1].split('.npy')[0]
             tur_str = turbulent_list[idx_trb[k]].split('/')[-1].split('.npy')[0]
 
-            dsk = disk(3)
-            print(dsk)
-            test = erosion(((tur_del > -0.5) & (tur_del < 0.5)).astype(int), dsk)
-            print(test.shape)
+            #dsk = disk(3)
+            #test = erosion(((tur_del > -0.5) & (tur_del < 0.5)).astype(int), dsk)
+            #test = rotate(test, angle, reshape=False, cval=0)
+
             angle = np.random.randint(0, 360)
-            test = rotate(test, angle, reshape=False, cval=0)
-            print(test.shape)
+            decoh = np.load(decoh_list[idx_decoh[k]])
+            decoh = rotate(decoh, angle, reshape=False, cval=False)
+
 
             #mask = np.random.choice([True, False], insar_wrapped.shape, p=[0.6, 0.4])
             #insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=mask)
 
-            insar_unwrapped = np.ma.MaskedArray(insar_img, mask=test.astype(bool))
+            #insar_unwrapped = np.ma.MaskedArray(insar_img, mask=test.astype(bool))
+            insar_unwrapped = np.ma.MaskedArray(insar_img, mask=decoh)
             insar_unwrapped_filled = np.ma.filled(insar_unwrapped, 0)
-            insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=test.astype(bool))
+            #insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=test.astype(bool))
+            insar_wrapped = np.ma.MaskedArray(insar_wrapped, mask=decoh)
             np.save(output_dir_unwrap+'unwrapped_DT_'+def_str+'_'+tur_str, insar_unwrapped_filled)
 
             
             plt.imsave(output_dir_wrap+'wrapped_DT_'+def_str+'_'+tur_str+'.png', insar_wrapped, cmap='jet')
-            plt.imsave(output_dir_unwrap+'unwrapped_DT_'+def_str+'_'+tur_str+'.png', insar_unwrapped, cmap='jet')
+            plt.imsave(output_dir_unwrap+'unwrapped_DT_'+def_str+'_'+tur_str+'.png', insar_unwrapped, cmap='jet', vmin=-20, vmax=20)
 
 
 

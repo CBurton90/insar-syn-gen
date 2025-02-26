@@ -185,6 +185,6 @@ def test_synthetic_completion(file, tol=10.0, K=None):
 
     mask = (intrpt_image == 0)
     final = np.ma.MaskedArray(intrpt_image, mask=mask)
-    plt.imsave('example_interpolated_image.png', final, cmap='jet')
+    plt.imsave('example_interpolated_image.png', final, cmap='jet', vmin=-20, vmax=20)
 
-test_synthetic_completion('../test_outputs/combined/unwrapped/set1/unwrapped_DT_incidence_30_heading_20_vol-1e4_depth_0.2_turb_8.25_0.004_1.npy', tol=30.0, K=200)
+test_synthetic_completion('../test_outputs/combined/unwrapped/set1/unwrapped_DT_incidence_29_heading_30_vol-1e3_depth_0.065_turb_6.5_0.008_7.npy', tol=30.0, K=200)
