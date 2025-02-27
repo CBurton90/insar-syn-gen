@@ -119,11 +119,11 @@ def construct_variogram(config):
             print(x)
             print(y)
 
-            coords_tuple = (np.float64(lng_subset), np.float64(lat_subset))
-            trend = vd.Trend(degree=1).fit(coords_tuple, vel_subset)
-            print(f'Trend coef Verde are: {trend.coef_}')
-            trend_values = trend.predict(coords_tuple)
-            vel_residuals = vel_subset - trend_values 
+            #coords_tuple = (np.float64(lng_subset), np.float64(lat_subset))
+            #trend = vd.Trend(degree=1).fit(coords_tuple, vel_subset)
+            #print(f'Trend coef Verde are: {trend.coef_}')
+            #trend_values = trend.predict(coords_tuple)
+            #vel_residuals = vel_subset - trend_values 
 
             xy_cint_stack = np.column_stack((x,y,np.ones_like(y)))
             print(xy_cint_stack)
@@ -147,7 +147,7 @@ def construct_variogram(config):
                    lat_subsample = lat_subset[rand_samp]
                    lng_subsample = lng_subset[rand_samp]
                    vel_subsample = vel_subset[rand_samp]
-                   vel_resid_subsample = vel_residuals[rand_samp]
+                   #vel_resid_subsample = vel_residuals[rand_samp]
                    np_vel_resid_subsample = np_vel_residuals[rand_samp]
                    x_subsample = x[rand_samp]
                    y_subsample = y[rand_samp]
@@ -156,7 +156,7 @@ def construct_variogram(config):
                    lat_subsample = lat_subset
                    lng_subsample = lng_subset
                    vel_subsample = vel_subset
-                   vel_resid_subsample = vel_residuals
+                   #vel_resid_subsample = vel_residuals
                    np_vel_resid_subsample = np_vel_residuals
                    x_subsample = x
                    y_subsample = y        

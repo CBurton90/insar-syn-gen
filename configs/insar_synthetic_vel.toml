@@ -1,5 +1,5 @@
 [data]
-frame = '/home/conradb/Downloads/096A_13547_NZ_GNS_rural.h5' # insar frame, hres = 20m pixels, rural = 50m pixels
+frame = '/share/home/conradb/Downloads/081A_12821_NZ_GNS_hres.h5' # insar frame, hres = 20m pixels, rural = 50m pixels
 image_dims = 224 # image dimensions
 
 [filters]
