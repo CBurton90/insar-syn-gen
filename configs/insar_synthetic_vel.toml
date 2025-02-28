@@ -11,3 +11,14 @@ bins = 30
 lat_res = 0.045 # latitude range to compute variogram over in degrees, we assume 0.01 deg ~ 1km
 lng_res = 0.045 # as above but for longitude
 plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/' # save output plots of variogram and covariance function
+
+[turbulent_delay]
+output_path = '/home/conradb/git/insar-syn-gen/test_outputs/turbulent_atm_noise/'
+cov_params = '/home/conradb/git/insar-syn-gen/variogram/variogram_params_081A_12821_NZ_GNS_hres.h5.csv' # saved variogram params needed to generate synthetics
+pixel_size_x = 20 # pixel spacing for insar velocity in the x direction (range??)
+pixel_size_y = 20 # pixel spacing for insar velocity in the y direction (slant range??)
+rows = 224 # n rows of covariance matrix
+cols = 224 # n cols of covariance matrix
+samples = 20000 #total number of samples desired, split across two sets evenly
+wrapped = true
+

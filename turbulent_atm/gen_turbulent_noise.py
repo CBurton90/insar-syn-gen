@@ -1,39 +1,70 @@
+# refactored into Python by C Burton 2025 from #https://github.com/pui-nantheera/Synthetic_InSAR_image/blob/main/main_code/runGenTurbulent.m
+# TJW 2004 & Nantheera Anantrasirichai 2021
+
+import cv2
 import math
+import munch
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
+import pandas as pd
+import toml
 from cholesky_decomp import create_turb_del
 
-output_dir = '../test_outputs/turbulent_atm_noise/'
-wrapped = True
-rows = 100
-cols = 100
-psizex = 1
-psizey = 1
-covmodel = 0
-N = 200
-halfcrop = 224 // 2 # Alexnet input size 227x227
-img_size = 500 # resolution in pixels
+# dummy params from original code - ignore
+#halfcrop = 224 // 2 # Alexnet input size 227x227
+#img_size = 500 # resolution in pixels
 
-maxvariance = [i + 7.5 for i in [-2, -1, 0, 0.75, 1.5]]
-alpha = [i * 0.008 for i in  [0.5, 0.75, 1, 1.5, 2]]
+#maxvariance = [i + 7.5 for i in [-2, -1, 0, 0.75, 1.5]]
+#alpha = [i * 0.008 for i in  [0.5, 0.75, 1, 1.5, 2]]
 
-for var in maxvariance:
-    for a in alpha:
-        turb_atm = create_turb_del(rows, cols, var, a, covmodel, N, psizex, psizey)
-        for i in range(N):
-            full_res = cv2.resize(turb_atm[:, : ,i], (img_size, img_size)) # note MATLAB imresize is hard to replicate https://stackoverflow.com/questions/29958670/how-to-use-matlabs-imresize-in-python
-            crop_idx = np.arange(-halfcrop, halfcrop)
-            crop = full_res[np.ix_(crop_idx + math.ceil(full_res.shape[0]/2), math.ceil(full_res.shape[1]/2) + crop_idx)]
+def gen_tur_samples(config):
 
-            output_path = output_dir + 'unwrapped/set'+str(2-(i % 2))+'/'
-            #plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', crop, cmap='jet')
-            np.save(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i), crop)
+    # use toml config for easier management of parameters/args
+    config = munch.munchify(toml.load(config))
+    img_dim = config.data.image_dims
+    output_dir = config.turbulent_delay.output_path
+    param_file = config.turbulent_delay.cov_params
+    psizex = config.turbulent_delay.pixel_size_x
+    psizey = config.turbulent_delay.pixel_size_y
+    rows = config.turbulent_delay.rows
+    cols = config.turbulent_delay.cols
+    samples = config.turbulent_delay.samples
+    warpped = config.turbulent_delay.wrapped
 
-            if wrapped:
-                wrapped_crop = np.angle(np.exp(1j * crop))
-                norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
-                output_path = output_dir + 'wrapped/set'+str(2-(i % 2))+'/'
-                plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', norm_wrapped, cmap='jet')
+    df = pd.read_csv(param_file)
+    df_filt = df.loc[df['rmse'] < 1.5]
+    max_covar = df_filt['a'].max() # max max covariance for covariance function
+    min_covar = df_filt['a'].min() # min max covariance for covariance function
+    max_decay = df_filt['b'].max() # max spatial decay constant for covariance function
+    min_decay = df_filt['b'].min() # min spatial decay constant for covariance function
 
+    # draw samples of maximum covariance and spatial decay constant from uniform distribution to produce individual covariance functions that then can create a covariance matrix to be decomposed
+    covar_arr = np.random.uniform(min_covar, max_covar, 10) # alpha in https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9181454, max covariance in https://www.sciencedirect.com/science/article/pii/S003442571930183X
+    decay_arr = np.random.uniform(min_decay, max_decay, 10) # beta in https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9181454, k in https://www.sciencedirect.com/science/article/pii/S003442571930183X
+    print(covar_arr)
+    print(decay_arr)
+    N = samples / (covar_arr.size * decay_arr.size) # number of samples to produce per for loop iteration
 
+    for covar in covar_arr:
+        for k in decay_arr:
+            turb_atm = create_turb_del(rows, cols, covar, k, 0, N, psizex, psizey)
+            for i in range(N):
+                # choosing not to use resize and crop as it could alter data, instead choose rows and cols to match image size
+                #full_res = cv2.resize(turb_atm[:, : , i], (img_dim, img_dim)) # note MATLAB imresize is hard to replicate https://stackoverflow.com/questions/29958670/how-to-use-matlabs-imresize-in-python
+                #crop_idx = np.arange(-halfcrop, halfcrop)
+                #crop = full_res[np.ix_(crop_idx + math.ceil(full_res.shape[0]/2), math.ceil(full_res.shape[1]/2) + crop_idx)]
+
+                crop = turb_atm[:, :, i]
+
+                output_path = output_dir + 'unwrapped/set'+str(2-(i % 2))+'/'
+                #plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', crop, cmap='jet')
+                np.save(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i), crop)
+
+                if wrapped:
+                    wrapped_crop = np.angle(np.exp(1j * crop))
+                    norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
+                    output_path = output_dir + 'wrapped/set'+str(2-(i % 2))+'/'
+                    plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', norm_wrapped, cmap='jet')
+
+if __name__ == '__main__':
+    gen_tur_samples('/home/conradb/git/insar-syn-gen/configs/insar_synthetic_vel.toml')
