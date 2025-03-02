@@ -29,7 +29,7 @@ def gen_tur_samples(config):
     rows = config.turbulent_delay.rows
     cols = config.turbulent_delay.cols
     samples = config.turbulent_delay.samples
-    warpped = config.turbulent_delay.wrapped
+    wrapped = config.turbulent_delay.wrapped
 
     df = pd.read_csv(param_file)
     df_filt = df.loc[df['rmse'] < 1.5]
@@ -43,7 +43,8 @@ def gen_tur_samples(config):
     decay_arr = np.random.uniform(min_decay, max_decay, 10) # beta in https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9181454, k in https://www.sciencedirect.com/science/article/pii/S003442571930183X
     print(covar_arr)
     print(decay_arr)
-    N = samples / (covar_arr.size * decay_arr.size) # number of samples to produce per for loop iteration
+    N = samples // (covar_arr.size * decay_arr.size) # number of samples to produce per for loop iteration
+    print(N)
 
     for covar in covar_arr:
         for k in decay_arr:
@@ -54,17 +55,21 @@ def gen_tur_samples(config):
                 #crop_idx = np.arange(-halfcrop, halfcrop)
                 #crop = full_res[np.ix_(crop_idx + math.ceil(full_res.shape[0]/2), math.ceil(full_res.shape[1]/2) + crop_idx)]
 
-                crop = turb_atm[:, :, i]
+                crop = turb_atm[:, :, i] / 1000 # convert from mm/yr to m/yr
+                print(crop.shape)
+                crop = crop/0.028333 * 2 * np.pi # convert to radians for Sentinel-1 C-band half wavelength
 
                 output_path = output_dir + 'unwrapped/set'+str(2-(i % 2))+'/'
                 #plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', crop, cmap='jet')
-                np.save(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i), crop)
+                np.save(output_path+'turb_maxcov_'+str(covar)+'_decay_'+str(k)+'_'+str(i), crop)
 
                 if wrapped:
-                    wrapped_crop = np.angle(np.exp(1j * crop))
-                    norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
+                    #wrapped_crop = np.angle(np.exp(1j * crop))
+                    #norm_wrapped = wrapped_crop - np.min(wrapped_crop) / (np.max(wrapped_crop) - np.min(wrapped_crop))
+                    wrapped_crop = np.mod(crop, 2*np.pi) - np.pi # wrap between -pi to +pi
+                    norm_wrapped = (wrapped_crop - np.min(wrapped_crop)) / np.ptp(wrapped_crop)
                     output_path = output_dir + 'wrapped/set'+str(2-(i % 2))+'/'
-                    plt.imsave(output_path+'turb_'+str(var)+'_'+str(a)+'_'+str(i)+'.png', norm_wrapped, cmap='jet')
+                    plt.imsave(output_path+'turb_maxcov_'+str(covar)+'_decay_'+str(k)+'_'+str(i)+'.png', norm_wrapped, cmap='jet')
 
 if __name__ == '__main__':
     gen_tur_samples('/home/conradb/git/insar-syn-gen/configs/insar_synthetic_vel.toml')
