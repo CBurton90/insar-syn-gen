@@ -1,5 +1,5 @@
 [data]
-frame = '/share/home/conradb/Downloads/081A_12821_NZ_GNS_hres.h5' # insar frame, hres = 20m pixels, rural = 50m pixels
+frame = '/share/home/conradb/Downloads/081A_12821_NZ_GNS_hres.h5' # insar frame, hres = 10m pixels, rural = 50m pixels
 image_dims = 224 # image dimensions
 
 [filters]
@@ -15,10 +15,32 @@ plot_save_path = '/home/conradb/git/insar-syn-gen/test_outputs/variogram_plots/'
 [turbulent_delay]
 output_path = '/home/conradb/git/insar-syn-gen/test_outputs/turbulent_atm_noise/'
 cov_params = '/home/conradb/git/insar-syn-gen/variogram/variogram_params_081A_12821_NZ_GNS_hres.h5.csv' # saved variogram params needed to generate synthetics
-pixel_size_x = 20 # pixel spacing for insar velocity in the x direction (range??)
-pixel_size_y = 20 # pixel spacing for insar velocity in the y direction (slant range??)
+pixel_size_x = 10 # pixel spacing in metres for insar velocity in the x direction (range??)
+pixel_size_y = 10 # pixel spacing in metres for insar velocity in the y direction (slant range??)
 rows = 224 # n rows of covariance matrix
 cols = 224 # n cols of covariance matrix
 samples = 20000 #total number of samples desired, split across two sets evenly
-wrapped = true
+wrapped = true # produce wrapped outputs?
 
+[deformation]
+source = 4 # Mogi is 4, more functionality to be added later for different sources
+max_dist = 2500 # pre crop +/- max dist in metres from source
+pixel_size = 10 # pre crop pixel spacing in metres, image will have size max_dist * 2 / pixel_size e.g. 2500*2 / 20 = 250x250 pixels
+volumes = [0.3, 0.5, 1.0, 1.5, 1.6, 1.8, 2.0, 2.3, 2.5, 2.7, 2.9, 3.0, 3.1, 3.2, 3.5, 4.0] # volume change where change = -x10^i m^3, depth is hardcoded within gen_deformation.py
+headings = [5, 15, 20, 25, 30, 40, 60, 70, 90, 100] # insar heading
+incidences = [27, 29, 30, 31, 32, 33, 35, 37, 41] # insar incidence angle
+crop = 224 # crop the deformation to desired image size
+min_def_range = 10 # minimum value of deformation in mm/r to ensure min-max range is within a limit to prevent wrapping discontinuities
+max_def_range = 50 # max value of deformation in mm/yr to ensure min-max range is within a limit to prevent wrapping discontinuities
+max_samples = 10000 # max number of deformation samples to produce, given we have enough parameters above to produce more samples than this limit
+output_path = '/home/conradb/git/insar-syn-gen/test_outputs/deformation/'
+wrapped = true # produce wrapped outputs?
+
+[combine]
+samples = 2800 # number of samples in each class
+root_dir = '/home/conradb/git/insar-syn-gen/test_outputs/combined/' 
+
+[interpolation]
+output_path = '/home/conradb/git/insar-syn-gen/test_outputs/delaunay_intrpt/' # output path for delaunay interpolation files
+tolerance = 30.0 # alpha value for threshold representing the maximum Delaunay triangle/edge size that will be kept, triangles that are too large will be discarded i.e. we won't interpolate over a certain limit
+wrapped = true # produce wrapped outputs?

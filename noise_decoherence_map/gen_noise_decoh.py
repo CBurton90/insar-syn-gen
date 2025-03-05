@@ -37,16 +37,17 @@ def calc_spike_noise(config):
                 vel_slice = vel_ma[row_start:row_end, col_start:col_end]
                 nan_count = np.isnan(vel_slice).sum()
                 
-                # check which slices have less than 65% as nan values
-                if nan_count < (0.65*dims**2):
-
+                # as long as we have 20% of data points we will create a spike noise map
+                if nan_count < (0.8 * dims**2):
                     filt_vel = generic_filter(vel_slice.astype(np.float32), np.nanmedian, footprint=np.ones((3,3))) # 3x3 pixel median filter
                     N = vel_slice - filt_vel # noise map in mm/yr
                     N = np.nan_to_num(N, nan=0) # reloading a .npy file with nans will return garbage values so we replace with zeros
                     np.save('../test_outputs/spike_noise/noise_map_'+str(frame.split('/')[-1])+'_rows_'+str(row_start)+'-'+str(row_end)+'_cols_'+str(col_start)+'-'+str(col_end), N)
-
-                    decoh_mask = np.isnan(vel_slice)
-                    np.save('../test_outputs/decoh_mask/decoh_mask_'+str(frame.split('/')[-1])+'_rows_'+str(row_start)+'-'+str(row_end)+'_cols_'+str(col_start)+'-'+str(col_end), decoh_mask)
+                
+                    # check which slices have less than threshold as nan values to save as decoherence mask
+                    if nan_count < (nan_thresh * dims**2):
+                        decoh_mask = np.isnan(vel_slice)
+                        np.save('../test_outputs/decoh_mask/decoh_mask_'+str(frame.split('/')[-1])+'_rows_'+str(row_start)+'-'+str(row_end)+'_cols_'+str(col_start)+'-'+str(col_end), decoh_mask)
 
 
 
