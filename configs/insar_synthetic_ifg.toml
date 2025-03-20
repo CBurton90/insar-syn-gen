@@ -1,0 +1,20 @@
+[data]
+image_dims = 224
+
+[turbulent_delay]
+output_path = '/home/conradb/git/insar-syn-gen/ifg_outputs/turbulent_atm_noise/'
+rescale = 500 # rescale size
+pixel_size_x = 1
+pixel_size_y = 1
+rows = 100
+cols = 100
+samples = 20000
+wrapped = true
+maxcovs = [5.5, 6.5, 7.5, 8.25, 9.0] # from https://github.com/pui-nantheera/Synthetic_InSAR_image/blob/da224d217ae95d0198d4b8514b96b8f0328ca1b9/main_code/runGenTurbulent.m#L25C5-L25C36
+alphas = [0.004, 0.006, 0.008, 0.012, 0.016] # from https://github.com/pui-nantheera/Synthetic_InSAR_image/blob/da224d217ae95d0198d4b8514b96b8f0328ca1b9/main_code/runGenTurbulent.m#L26C17-L26C41
+
+[stratified]
+output_path = '/home/conradb/git/insar-syn-gen/ifg_outputs/stratified_atm_noise/'
+rescale = 500
+samples = 100
+incidence = 43.7835

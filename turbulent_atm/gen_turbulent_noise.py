@@ -69,7 +69,8 @@ def gen_tur_samples(config):
                     wrapped_crop = np.mod(crop, 2*np.pi) - np.pi # wrap between -pi to +pi
                     norm_wrapped = (wrapped_crop - np.min(wrapped_crop)) / np.ptp(wrapped_crop)
                     output_path = output_dir + 'wrapped/set'+str(2-(i % 2))+'/'
-                    plt.imsave(output_path+'turb_maxcov_'+str(covar)+'_decay_'+str(k)+'_'+str(i)+'.png', norm_wrapped, cmap='jet')
+                    plt.imsave(output_path+'+pi-pi_turb_maxcov_'+str(covar)+'_decay_'+str(k)+'_'+str(i)+'.png', wrapped_crop, cmap='jet', vmin=-np.pi, vmax=np.pi)
+                    plt.imsave(output_path+'turb_maxcov_'+str(covar)+'_decay_'+str(k)+'_'+str(i)+'.png', norm_wrapped, cmap='jet', vmin=0, vmax=1)
 
 if __name__ == '__main__':
     gen_tur_samples('/home/conradb/git/insar-syn-gen/configs/insar_synthetic_vel.toml')

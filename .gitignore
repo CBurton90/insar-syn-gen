@@ -1,9 +1,12 @@
 test_outputs/**
+ifg_outputs/**
 *.out
 variogram/*.csv
 variogram/*.npy
 !test_outputs/**/
+!ifg_outputs/**/
 !test_outputs/**/.gitkeep
+!ifg_outputs/**/.gitkeep
 turbulent_atm/**/*.cpython-310.pyc
 
 **/__pycache__/

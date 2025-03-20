@@ -1,0 +1,18 @@
+WIDTH   601
+FILE_LENGTH   601
+XMIN          0
+XMAX          601
+YMIN          0
+YMAX          601
+X_FIRST          175.9500000
+Y_FIRST          -38.2200000
+X_STEP             0.000833333330000
+Y_STEP            -0.000833333330000
+X_UNIT        degres
+Y_UNIT        degres
+Z_OFFSET      0
+Z_SCALE       1
+PROJECTION    LATLON
+DATUM         WGS84
+TIME_OF_DAY 15UTC
+DEM COP- DEM_GLO-90
