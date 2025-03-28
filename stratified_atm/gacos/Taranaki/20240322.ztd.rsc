@@ -4,8 +4,8 @@ XMIN          0
 XMAX          601
 YMIN          0
 YMAX          601
-X_FIRST          173.8000000
-Y_FIRST          -39.1500000
+X_FIRST          173.7500000
+Y_FIRST          -39.0500000
 X_STEP             0.000833333330000
 Y_STEP            -0.000833333330000
 X_UNIT        degres

@@ -33,8 +33,8 @@ def main(config):
         idx_noise = np.random.choice(len(noise_list), class_samples, replace = True)
         idx_decoh = np.random.choice(len(decoh_list), class_samples, replace = True)
 
-        output_dir_unwrap = root_dir+unwrapped_dir
-        output_dir_wrap = root_dir+wrapped_dir
+        output_dir_unwrap = root_dir+'combined/'+unwrapped_dir
+        output_dir_wrap = root_dir+'combined/'+wrapped_dir
         
         # class 0 / set 1 = no deformation
         if set == 1:
