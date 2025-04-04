@@ -37,7 +37,7 @@ def main(config):
                 str_str = stratified_list[idx_str[k]].split('/')[-1].split('.npy')[0]
                 np.save(output_dir_unwrap+'unwrapped_ST_'+str_str+'_'+tur_str, insar_img)
                 plt.imsave(output_dir_unwrap+'unwrapped_ST_'+str_str+'_'+tur_str+'.png', insar_img, cmap='jet', vmin=-20, vmax=20)
-                plt.imsave(output_dir_wrap+'wrapped_ST_'+tur_str+'.png', insar_wrapped, cmap='gray', vmin=0, vmax=1)
+                plt.imsave(output_dir_wrap+'wrapped_ST_'+str_str+'_'+tur_str+'.png', insar_wrapped, cmap='gray', vmin=0, vmax=1)
         
         # class 1 / set 2 = deformation
         else:
@@ -45,6 +45,13 @@ def main(config):
                 los_grid = np.load(deform_list[idx_def[k]])
                 tur_del = np.load(turbulent_list[idx_trb[k]])
                 str_del = np.load(stratified_list[idx_str[k]])
+
+                if np.ptp(los_grid) <= 15:
+                    los_grid = los_grid*18/np.ptp(los_grid) # scale up small deformation
+                elif np.ptp(los_grid) => 50:
+                    los_grid = los_grid*40/np.ptp(los_grid) # scale down large deformation
+                else:
+                    los_grid = los_grid
 
                 insar_img = los_grid + str_del + tur_del
                 insar_wrapped = np.mod(insar_img, 2*np.pi) - np.pi
