@@ -23,17 +23,46 @@ wrapped = true
 [deformation]
 max_dist = 25000 # pre crop +/- max dist in metres from source
 pixel_size = 100 # pre crop pixel spacing in metres, image will have size max_dist * 2 / pixel_size e.g. 25000*2 / 100 = 500x500 pixels
-source = 4
-volumes = [5.0, 5.2, 5.5, 5.7, 6.2, 6.3, 6.4, 6.5, 6.7, 6.9, 7.2, 7.4, 7.7, 7.8]
-headings = [5, 45, 85, 125, 165, 205, 245, 285, 325]
-incidences = [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 45, 46]
 crop = 224
 output_path = '/home/conradb/git/insar-syn-gen/ifg_outputs/deformation/'
-min_def_range = 10 # minimum value of deformation in mm to ensure min-max range is within a limit to prevent wrapping discontinuities
-max_def_range = 60 # max value of deformation in mm to ensure min-max range is within a limit to prevent wrapping discontinuities
-max_samples = 10000
-wrapped = true
+max_samples = 5000
+
+[quake]
+strikes = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324] # strike in degrees
+dips = [70, 75, 80, 85, 90] # dip in degrees
+rakes = [60, 75, 90, 105, 120, -110, -95, -80] # rake in degrees
+slip = 1 # magnitude of slip vector in metres
+lengths = [1.5, 2.0, 5.0] # fault length in kilometres
+top_depth = 3 # depth (measured vertically) to top of fault in kilometres
+bottom_depths = [6, 10] # depth (measured vertically) to bottom of fault in kilometres
+heading = 192.04 # heading (azimuth) of satellite measured clockwise from North, in degrees
+incidence = 23
+rad_min = 12
+rad_max = 80
+
+[mogi]
+incidences = [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 45, 46]
+headings = [5, 45, 85, 125, 165, 205, 245, 285, 325]
+volumes = [5.0, 5.2, 5.5, 5.7, 6.2, 6.3, 6.4, 6.5, 6.7, 6.9, 7.2, 7.4, 7.7, 7.8]
+rad_min = 10
+rad_max = 60
+
+[dyke]
+strike = 0 
+dip = 0
+opening = 1
+length = 10
+top_depth = 2
+bottom_depth = 8
+
+[sill]
+strike = 0 # strike (orientation of Length dimension) in degrees [no different]
+dip = 0 # dip in degrees (usually zero or near zero)
+opening = 10 # magnitude of opening (perpendincular to plane) in metres
+depth = 5 # depth (measured vertically) to top of dyke in kilometres
+width = 1 # depth (measured vertically) to bottom of dyke in kilometres
+length = 1 # dyke length in kilometres
 
 [combine]
-samples = 2000
+samples = 3000
 root_dir = '/home/conradb/git/insar-syn-gen/ifg_outputs/'

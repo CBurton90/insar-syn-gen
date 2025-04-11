@@ -135,6 +135,6 @@ if __name__ == '__main__':
     output_dir = config.deformation.output_path
 
     #_, los_grid = gen_def(4, x, y, mogi, 20, 34)
-    create_def_samples(source, x, y, mogi, volume_lst, heading_lst, incidence_lst, halfcrop, output_dir, config)
+    create_def_samples(source, x, y, mogi, quake, volume_lst, heading_lst, incidence_lst, halfcrop, output_dir, config)
 
 

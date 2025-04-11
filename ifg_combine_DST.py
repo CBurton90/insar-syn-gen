@@ -48,7 +48,7 @@ def main(config):
 
                 if np.ptp(los_grid) <= 15:
                     los_grid = los_grid*18/np.ptp(los_grid) # scale up small deformation
-                elif np.ptp(los_grid) => 50:
+                elif np.ptp(los_grid) >= 50:
                     los_grid = los_grid*40/np.ptp(los_grid) # scale down large deformation
                 else:
                     los_grid = los_grid

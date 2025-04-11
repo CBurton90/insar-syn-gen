@@ -1,11 +1,15 @@
 # insar-syn-gen
-Pythonic generation of synthetic wrapped interferograms from long term velocity rates obtained from InSAR displacement time series. To be used as a machine learning ready finetuning dataset for large pretrained self-supervised (SSL) image models.
+Pythonic generation of synthetic wrapped interferograms from long term velocity rates obtained from InSAR displacement time series and also conventional interferograms (LiCSAR). To be used as a machine learning ready finetuning dataset for large pretrained self-supervised (SSL) image models.
 
-This repository is heavily based off two research papers from Anantrasirichai et al., 2019 and Anantrasirichai et al. 2021 (see references at the bottom of this README). The GitHub repository and matlab code for the first paper can be found at:
+This repository is an attempt to replicate the synthetic datasets from two research papers; Anantrasirichai et al., 2019 and Anantrasirichai et al. 2021 (see references at the bottom of this README). The GitHub repository and MATLAB code for the first paper can be found at:
 
 https://github.com/pui-nantheera/Synthetic_InSAR_image/tree/main
 
 # Usage
+
+Options are available to create synthetic interferograms based off both InSAR velocities (Anantrasirichai et al. 2021) and LiCSAR interferograms (Anantrasirichai et al., 2019).
+
+# InSAR velocities
 
 ## Configuration
 
@@ -20,6 +24,8 @@ A toml file can be found under `configs/insar_synthetic_vel.toml` which can be e
 ## Turbulent atmospheric noise
 
 `turbulent_atm/gen_turbulent_noise.py` will use the csv generated from the spatial variogram stage to read in parameters for the maximum covariances and spatial decay constants for each covariance function per spatial subset. The range of these parameters is then used as an upper/lower bound for sampling new maxmimum covariances and spatial decay constants from a uniform distribution. These are then used to produce distance/velocity covariance matrices of the turbulent atmospheric noise field (as assumption is made of no stratified noise) which are further decomposed with Cholesky decomposition. The upper triangular Cholesky matrix can then be used to generate new correlated noise samples by mutplication with an uncorrelated random vector sampled from a standard normal distribution. Both unwrapped and wrapped turbulent noise samples are generated.
+
+Outputs are saved to `test_outputs/turbulent_atm_noise`
 
 ![turb_maxcov_2 146751542480711_decay_0 2341718236406554_21](https://github.com/user-attachments/assets/959255eb-06ce-4c20-a335-01cef17e5d81)
 
@@ -48,6 +54,34 @@ Unwrapped class 1 (D+T+noise+decoherence)             |  Wrapped class 1 (D+T+no
 Unwrapped Interpolation with Delaunay Triangulation (class 1) | Wrapped Interpolation with Delaunay Triangulation (class 1)
 :-------------------------:|:-------------------------:
 ![example_interpolated_image](https://github.com/user-attachments/assets/b2884ff9-2a13-41d4-9d48-aa84d0efefd1) | ![example_interpolated_image_wrapped](https://github.com/user-attachments/assets/7b7722a5-cf39-485c-8add-16ea7d202c8c)
+
+# LiCSAR interferograms
+
+## Configuration
+
+A toml file can be found under `configs/insar_synthetic_ifg.toml` which can be edited to change arguments of the below stages.
+
+## Turbulent atmospheric noise
+
+`turbulent_atm/ifg-gen_turbulent_noise.py` will create turbulent noise samples with the same parameters as used in Anantrasirichai et al., 2019.
+
+Outputs are saved to `ifg_outputs/turbulent_atm_noise`.
+
+## Stratified atmospheric noise
+
+We follow Anantrasirichai et al., 2019 and use GACOS ztd delays over regions of New Zealand. You will need to unzip/extract the `.tar.gz` files into the correct folders i.e. `tar -xvzf Taranaki_set1_set2.tar.gz -C Taranaki/`. Then `ifg_gen_stratified_noise.py` will difference the 12 day ztd delays and rotate them in 90 degree increments to save more unique samples.
+
+Outputs are saved to `ifg_outputs/stratified_atm_noise`.
+
+## Deformation source model
+
+`deformation/ifg_gen_deformation.py` will produce samples from Earthquake (Okada) and Point (Mogi) source modelling of deformation in InSAR LOS. Parameters can be found in the toml config file.
+
+## Combining data
+
+`ifg_combine_DST.py` will randomly combine deformation (D), stratified (S), and turbulent (T) signals and produces two labelled sets for binary classification; set 1 (S+T) and set 2 (D+S+T).
+
+Outputs are saved to `ifg_outputs/combined`.
 
 ## BibTeX references
 ```
